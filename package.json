@@ -19,7 +19,7 @@
     "electron-is-dev": "^1.2.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1",
+    "react-scripts": "^3.4.3",
     "typescript": "~3.7.2",
     "wait-on": "^5.1.0"
   },
@@ -54,5 +54,8 @@
     "appId": "<com.your_app>"
   },
   "main": "public/electron.js",
-  "homepage": "./"
+  "homepage": "./",
+  "devDependencies": {
+    "electron-rebuild": "^2.0.2"
+  }
 }
