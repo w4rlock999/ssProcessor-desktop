@@ -16,6 +16,7 @@ import Typography from '@material-ui/core/Typography';
 import LinearProgress from '@material-ui/core/LinearProgress'
 import { makeStyles, withStyles } from '@material-ui/core/styles';
 import backgroundImageFile from './bromo1.jpg';
+import ssIconFile from './512.png';
 import dsarotBlack from './dsarotblack.png';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -31,7 +32,6 @@ import './font.css';
 
 const Electron = window.require('electron');
 const ipcRenderer = Electron.ipcRenderer;
-
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -141,6 +141,10 @@ function AlertDialog(props) {
     setOpen(false);
   };
 
+  const onOpenFolderHandler = () => {
+    props.onOpenFolderHandler();
+  };
+
   return (
     <div>
       {/* <Button variant="outlined" color="primary" onClick={handleClickOpen}>
@@ -164,7 +168,7 @@ function AlertDialog(props) {
           <br/>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="primary" style={{backgroundColor: "lightgrey", borderRadius: 0}}>
+          <Button onClick={onOpenFolderHandler} color="primary" style={{backgroundColor: "lightgrey", borderRadius: 0}}>
             <FolderIcon/>
             <Typography variant="body2" style={{marginLeft: 10}}>
               Open Folder
@@ -180,7 +184,7 @@ function Copyright() {
   return (
     <Typography variant="body2" color="textSecondary" align="center">
       {'Copyright © '}
-      <Link color="inherit" href="https://dsarot.com/">
+      <Link color="inherit" >
         dsarot technology 
       </Link>{' '}
       {new Date().getFullYear()}
@@ -191,10 +195,14 @@ function Copyright() {
 
 function TitleComponent() {
   return (
-    <div style={{margin: 'auto', marginBottom: '60px'}}>
-        <Typography variant="h2">
-          OneProcessor
-        </Typography>
+    <div style={{margin: 'auto', marginBottom: '50px'}}>
+        <div>
+          <img style={{marginRight:7, display:'inline'}} 
+                src={ssIconFile} alt="sslogo" width="60px"/>
+          <Typography variant="h2" style={{display:'inline'}}>
+            Processor
+          </Typography>
+        </div>
         <div style={{marginLeft: 10}} >
           <Typography style={{display: 'inline'}} variant="subtitle1">
             by
@@ -338,15 +346,15 @@ function InputDialog(props) {
 
   ipcRenderer.on("dataOK", (event,arg) => {
     if(arg){
-      // setInputState("error");
       setDataOK(true);
     }else{
-      setDataOK(false);
-      setInputState("error");
-      window.setTimeout(function(){
-        setInputState("waiting");
-      }, 2000);
-
+      if(inputState === "checking"){
+        setDataOK(false);
+        setInputState("error");
+        window.setTimeout(function(){
+          setInputState("waiting");
+        }, 2000);
+      }
     }
   });
 
@@ -515,15 +523,32 @@ function ProcessDialog(props) {
   const classes = useStyles();
   const progress = 50;
 
+  const [firstRender, setFirstRender] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
   const [progressData, setProgressData] = React.useState({
-                                                          percentage: "0",
-                                                          currentData: "0",
-                                                          totalData: "0",
-                                                          eta: "0",
-                                                          iterSecond: "0",
+                                                          percentage  : "0",
+                                                          currentData : "0",
+                                                          totalData   : "0",
+                                                          eta         : "0",
+                                                          iterSecond  : "0",
                                                         })
+  
+  
+  useEffect(() => {
+    if(firstRender){
+      setFirstRender(false);
+    }else{
+      if( !dialogOpen ){
+        props.backOnClickHandler();
+      }
+    }
+  }, [dialogOpen]);
+  
+  const openFolderHandler = () => {
+    ipcRenderer.send("openFolder", true);
+    setDialogOpen(false);
+  };
 
   const alertDialogCloseHandler = () => {
     setDialogOpen(false);
@@ -535,6 +560,7 @@ function ProcessDialog(props) {
 
   const yesOnClickHandler = () => {
     ipcRenderer.send("terminateProcess", true);
+    props.backOnClickHandler();
     setCancelDialogOpen(false);
   };
   
@@ -554,7 +580,9 @@ function ProcessDialog(props) {
     setProgressData(arg);
   })
 
-
+  ipcRenderer.on("processFinished", (event,arg) => {
+    setDialogOpen(true);
+  })
 
   return (
       <div className={classes.paper}>
@@ -571,6 +599,9 @@ function ProcessDialog(props) {
             <Typography style={{textAlign: 'center'}} className="fadeOutput2">
               {progressData.iterSecond} Frame/s
             </Typography>
+            <Typography style={{textAlign: 'center'}} className="fadeOutput2">
+              {progressData.eta}
+            </Typography>            
           </div>
  
           <div style={{position: 'relative', paddingTop: 0, paddingBottom: 0,}}>
@@ -581,11 +612,11 @@ function ProcessDialog(props) {
               variant="contained"
               color="secondary"
               // className={"progressBarButton"}
-              style={{marginTop: 25, padding:4, paddingLeft:4, paddingRight: 2, borderRadius: 0}}
-              onClick={props.backOnClickHandler}
+              style={{marginTop: 25, padding:6, paddingLeft:4, paddingRight: 2, borderRadius: 0}}
+              // onClick={props.backOnClickHandler}
             >
               <div style={{width:"100%"}}>
-                <BorderLinearProgress style={{width:"100%", borderRadius: 0}} variant="determinate" value={progressData.percentage} className="rollOutput"/>
+                <BorderLinearProgress style={{height: 5, width:"100%", borderRadius: 0}} variant="determinate" value={parseInt(progressData.percentage)} className="rollOutput"/>
               </div>
               <Typography style={{width: '50px', marginLeft: '8px', marginRight: '5px', textAlign: 'center'}} className="fadeOutput2">
                 {progressData.percentage}%
@@ -598,7 +629,9 @@ function ProcessDialog(props) {
             />
 
           </div>
-          <AlertDialog appear={dialogOpen} onCloseHandler={alertDialogCloseHandler}/>
+          <AlertDialog appear={dialogOpen} 
+                        onOpenFolderHandler = {openFolderHandler} 
+                        onCloseHandler={alertDialogCloseHandler}/>
   
           <Box mt={9}>
             <Copyright />

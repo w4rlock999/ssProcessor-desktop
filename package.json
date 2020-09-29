@@ -17,6 +17,7 @@
     "electron": "^9.1.1",
     "electron-builder": "^22.7.0",
     "electron-is-dev": "^1.2.0",
+    "ps-tree": "^1.2.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "^3.4.3",

@@ -1,0 +1,12 @@
+{
+    "boresightAdjustment" : {
+        "Roll"  : 0.0,
+        "Pitch" : 0.0,
+        "Yaw"   : 0.0
+    },
+    "leverarmAdjustment" : {
+        "x"     : 0.0,
+        "y"     : 0.0,
+        "z"     : 0.0
+    }
+}

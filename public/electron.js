@@ -8,6 +8,8 @@ const { ipcMain, webContents } = require('electron');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var execSync = require('child_process').execSync;
+var psTree = require('ps-tree');
+
 
 let mainWindow;
 
@@ -21,10 +23,11 @@ function createWindow() {
             webPreferences: {
                 nodeIntegration: true,
             },
-            icon: path.join(__dirname, 'assets/icons/png/100x100.png')
+            icon: path.join(__dirname, 'assets/icons/png/128.png')
         });
+        (isDev ? console.log('dev running') : mainWindow.removeMenu());
         mainWindow.loadURL(isDev? "http://localhost:3000": `file://${path.join(__dirname, "../build/index.html")}`);
-        mainWindow.webContents.openDevTools();
+        // mainWindow.webContents.openDevTools();
         mainWindow.on("closed", () => (mainWindow = null));
     }
 
@@ -32,25 +35,38 @@ app.on("ready", createWindow);
 app.on("window-all-closed", () => { if (process.platform !== "darwin") {app.quit(); }});
 app.on("activate", () => { if (mainWindow === null) {createWindow(); }});
 
+var g_projectPath = ""
+
 ipcMain.on("startProcess", (event,arg) => {
     console.log("start process received");
     
     const projectPath = arg.projectPath;
+    g_projectPath = arg.projectPath;
     const trajectoryPath = arg.trajectoryPath;
     // console.log(startParams);
 
-    childPythonProcess = spawn('python',['C:\\Users\\w4rlo\\Documents\\Workspace\\ppk_mapper\\ppk_winV2.py', projectPath, trajectoryPath]);
-
+    // childPythonProcess = spawn('python',['C:\\Users\\w4rlo\\Documents\\Workspace\\ppk_mapper\\ppk_winV2.py', projectPath, trajectoryPath]);
+    (isDev ?
+    childPythonProcess = spawn('C:\\Users\\w4rlo\\Documents\\Workspace\\ppk_mapper\\dist\\ppk_winV2\\ppk_winV2.exe', 
+                         [ projectPath[0], trajectoryPath[0]])
+    :
+    childPythonProcess = spawn(path.join(__dirname, "../engine/processor/ppk_winV2.exe"), [ projectPath[0], trajectoryPath[0]] )
+    )
     childPythonProcess.stdout.setEncoding('utf8');
     childPythonProcess.stderr.setEncoding('utf8');
 
     childPythonProcess.stdout.on('data', (data) => {
         var pythonProcessOutput = data;
-        console.log(pythonProcessOutput);
+        // console.log(pythonProcessOutput);
 
         if(pythonProcessOutput.includes("process_start")){
             console.log("data OK!");
             mainWindow.webContents.send("dataOK", true);    
+        }
+        
+        if(pythonProcessOutput.includes("process_finish")){
+            console.log("process finished!");
+            mainWindow.webContents.send("processFinished", true);    
         }
 
     });
@@ -59,7 +75,7 @@ ipcMain.on("startProcess", (event,arg) => {
         // console.log(`${data}` );
         // var pythonProcessProgress = "";
         var pythonProcessProgress = data;
-
+        console.log(pythonProcessProgress)
         if(pythonProcessProgress.includes("%")){
             var percentPos  = pythonProcessProgress.search('%');
             var slashPos    = pythonProcessProgress.search('/');
@@ -73,7 +89,7 @@ ipcMain.on("startProcess", (event,arg) => {
             var eta         = pythonProcessProgress.substring(openBrPos+7, commaPos);
             var iterSecond  = pythonProcessProgress.substring(commaPos+1, closeBrPos-4);
 
-            console.log(`${percentage} ${currentData} ${totalData} ${eta} ${iterSecond} `);
+            // console.log(`${percentage} ${currentData} ${totalData} ${eta} ${iterSecond} `);
         
             progressDataMsg.percentage      = percentage;
             progressDataMsg.currentData     = currentData;
@@ -98,7 +114,14 @@ ipcMain.on("startProcess", (event,arg) => {
         }
     });
     
+    ipcMain.on("terminateProcess", (event,arg) => {
+        kill(childPythonProcess.pid, 'SIGINT');
+    });
     
+    ipcMain.on("openFolder", (event,arg) => {
+        // console.log(g_projectPath[0])
+        electron.shell.openPath(g_projectPath[0]);
+    });
 
     // Dummy dataOK code below:
     // setTimeout( function(){
@@ -108,4 +131,27 @@ ipcMain.on("startProcess", (event,arg) => {
     
     // ipcMain.send("dataOK", true)
 });
+
+var kill = function (pid, signal, callback) {
+    signal = signal || 'SIGINT'
+    callback = callback || function () {};
+    var killTree = true;
+    if (killTree) {
+        psTree(pid, function (err, children) {
+            [pid].concat(
+                children.map(function (p) {
+                    return p.PID;
+                })
+            ).forEach(function (tpid) {
+                try { process.kill(tpid, signal) }
+                catch (ex) { }
+            });
+            callback();
+        });
+    } else {
+        try { process.kill(pid, signal) }
+        catch (ex) { }
+        callback();
+    }
+};
 
