@@ -11,3 +11,8 @@ This software is a GUI for the main python program "ppkMapper". This software wr
 It works by interfacing with user and send input (file name, directory, etc.) to python program, and processing output (progress, processing speed, etc) from python program into GUI.
 
 ### Writen in JS, using Material-UI react component library.
+
+### To run this as demo
+
+1. install all dependencies () `npm install`
+2. start the program () `npm install` it will run concurrently the local web server and electronJS application window, wait several seconds until it loaded on the window
