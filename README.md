@@ -14,5 +14,5 @@ It works by interfacing with user and send input (file name, directory, etc.) to
 
 ### To run this as demo
 
-1. install all dependencies () `npm install`
-2. start the program () `npm install` it will run concurrently the local web server and electronJS application window, wait several seconds until it loaded on the window
+1. install all dependencies `npm install`
+2. start the program `npm start` it will run concurrently the local web server and electronJS application window, wait several seconds until it loaded on the window
