@@ -14,6 +14,7 @@ var psTree = require('ps-tree');
 let mainWindow;
 
 let childPythonProcess;
+let childKMLConverter;
 let progressDataMsg = new Object();
 
 function createWindow() {
@@ -40,15 +41,25 @@ var g_projectPath = ""
 ipcMain.on("startProcess", (event,arg) => {
     console.log("start process received");
     
-    const projectPath = arg.projectPath;
-    g_projectPath = arg.projectPath;
-    const trajectoryPath = arg.trajectoryPath;
-    // console.log(startParams);
+    const projectPath       = arg.projectPath;
+    g_projectPath           = arg.projectPath;
+    const trajectoryPath    = arg.trajectoryPath;
 
-    // childPythonProcess = spawn('python',['C:\\Users\\w4rlo\\Documents\\Workspace\\ppk_mapper\\ppk_winV2.py', projectPath, trajectoryPath]);
+
+    var kmlConverterPath = path.join(__dirname, "../engine/converter/pos2kml.exe");
+    var trajectoryPosFile = path.join(trajectoryPath[0],"/kmlData.pos");
+
+    childKMLConverter = exec(`${kmlConverterPath} -a -tu ${trajectoryPosFile}`, ()=>{
+        pythonProcess(projectPath, trajectoryPath);
+    });
+
+});
+
+var pythonProcess = function(projectPath, trajectoryPath) {
+
     (isDev ?
     childPythonProcess = spawn('C:\\Users\\w4rlo\\Documents\\Workspace\\ppk_mapper\\dist\\ppk_winV2\\ppk_winV2.exe', 
-                         [ projectPath[0], trajectoryPath[0]])
+                            [ projectPath[0], trajectoryPath[0]])
     :
     childPythonProcess = spawn(path.join(__dirname, "../engine/processor/ppk_winV2.exe"), [ projectPath[0], trajectoryPath[0]] )
     )
@@ -122,15 +133,7 @@ ipcMain.on("startProcess", (event,arg) => {
         // console.log(g_projectPath[0])
         electron.shell.openPath(g_projectPath[0]);
     });
-
-    // Dummy dataOK code below:
-    // setTimeout( function(){
-    //     mainWindow.webContents.send("dataOK", true);
-    //     console.log("dataok sent");
-    // },500);
-    
-    // ipcMain.send("dataOK", true)
-});
+};
 
 var kill = function (pid, signal, callback) {
     signal = signal || 'SIGINT'
